@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../features/search/search_page.dart';
+
 
 import '../features/home/home_page.dart';
 import '../features/collections/collections_page.dart';
@@ -24,6 +26,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/cart', builder: (c, s) => const CartPage()),
       GoRoute(path: '/account', builder: (c, s) => const AccountPage()),
+      GoRoute(
+  path: '/search',
+  builder: (c, s) {
+    final q = s.uri.queryParameters['q'] ?? '';
+    return SearchPage(q: q);
+  },
+),
+
     ],
   );
 });
+

@@ -23,8 +23,12 @@ class AppHeader extends ConsumerWidget {
           InkWell(
             onTap: () => context.go('/'),
             child: const Text(
-              'YOURBRAND',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              'Elegant Way',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
           const SizedBox(width: 24),
@@ -34,10 +38,15 @@ class AppHeader extends ConsumerWidget {
 
           const Spacer(),
 
-          // Search (UI only for now; next we can wire to /products?q=)
+          // Search (wired to /search?q=... on Enter)
           SizedBox(
             width: 260,
             child: TextField(
+              onSubmitted: (value) {
+                final q = value.trim();
+                if (q.isEmpty) return;
+                context.go('/search?q=${Uri.encodeComponent(q)}');
+              },
               decoration: InputDecoration(
                 hintText: 'Search',
                 prefixIcon: const Icon(Icons.search, size: 20),
