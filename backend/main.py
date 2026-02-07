@@ -2,8 +2,12 @@ from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 app = FastAPI(title="Saja Website API", version="0.2.0")
+BASE_DIR = Path(__file__).resolve().parent
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 # DEV CORS ONLY
 app.add_middleware(
@@ -43,16 +47,57 @@ PRODUCTS = [
         "description": "Another cotton tee demo product.",
     },
     {
-        "id": "p3",
-        "slug": "kurti-rose-1",
-        "title": "Kurti - Rose Pattern",
-        "priceLkr": 7900,
-        "compareAtPriceLkr": 8900,
-        "imageUrls": [],
-        "sizes": ["S", "M", "L", "XL"],
-        "inStock": True,
-        "collection": "kurtis",
-        "description": "Kurti demo product (patterned).",
+ 
+    "id": "p3",
+    "slug": "kurti-rose-1",
+    "title": "Kurti - Rose Pattern",
+    "priceLkr": 7900,
+    "compareAtPriceLkr": 8900,
+    "imageUrls": [
+        #"https://drive.google.com/file/d/1vGXeezMEzHAPEWTAkpOpz3aplH38Kvj0",
+        
+        #"https://drive.google.com/uc?export=view&id=1D-5wo4EWO-E1-UG60quehjHFs7cRxDH4",
+       # "https://drive.google.com/uc?export=view&id=1-otR3A7TQQHNme3d8l2PLSHLtFmMq6c3",
+       # "https://drive.google.com/uc?export=view&id=1WX8RWockjVWz1bEAhPl_BP1md4ji9KvP",
+       # "https://drive.google.com/uc?export=view&id=1V6AL2_3ExLBr1Dml2u-IQrzFT9t9Cgqb"
+         "http://localhost:8000/static/kurtis/kurta1.png",
+       "http://localhost:8000/static/kurtis/krta2.png",
+        "http://localhost:8000/static/kurtis/krta3.png",
+         "http://localhost:8000/static/kurtis/krta4.png",
+        "http://localhost:8000/static/kurtis/krta5.png",
+    ],
+    "sizes": ["S", "M", "L", "XL"],
+    "inStock": True,
+    "collection": "kurtis",
+    "description": "Elegant rose-pattern kurti"
+
+
+    },
+
+     {
+ 
+    "id": "p3",
+    "slug": "kurti-rose-1",
+    "title": "Kurti - Rose Pattern",
+    "priceLkr": 3400,
+    "compareAtPriceLkr": 3000,
+    "imageUrls": [
+        #"https://drive.google.com/file/d/1vGXeezMEzHAPEWTAkpOpz3aplH38Kvj0",
+        
+        #"https://drive.google.com/uc?export=view&id=1D-5wo4EWO-E1-UG60quehjHFs7cRxDH4",
+       # "https://drive.google.com/uc?export=view&id=1-otR3A7TQQHNme3d8l2PLSHLtFmMq6c3",
+       # "https://drive.google.com/uc?export=view&id=1WX8RWockjVWz1bEAhPl_BP1md4ji9KvP",
+       # "https://drive.google.com/uc?export=view&id=1V6AL2_3ExLBr1Dml2u-IQrzFT9t9Cgqb"
+
+         "http://localhost:8000/static/kurtis/krta4.png",
+        "http://localhost:8000/static/kurtis/krta5.png",
+    ],
+    "sizes": ["S", "M", "L", "XL"],
+    "inStock": True,
+    "collection": "kurtis",
+    "description": "Elegant rose-pattern kurti"
+
+
     },
 ]
 
