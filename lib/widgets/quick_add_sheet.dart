@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import '../models/product.dart';
-import '../services/cart_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class QuickAddSheet extends StatefulWidget {
+import '../models/product.dart';
+import '../state/cart_state.dart';
+
+class QuickAddSheet extends ConsumerStatefulWidget {
   final Product product;
 
   const QuickAddSheet({
@@ -11,27 +13,25 @@ class QuickAddSheet extends StatefulWidget {
   });
 
   @override
-  State<QuickAddSheet> createState() => _QuickAddSheetState();
+  ConsumerState<QuickAddSheet> createState() => _QuickAddSheetState();
 }
 
-class _QuickAddSheetState extends State<QuickAddSheet> {
-  final _cart = CartService();
+class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   String? selectedSize;
   bool isLoading = false;
 
   Future<void> _addToCart() async {
     final p = widget.product;
-
     if (!p.inStock) return;
     if (selectedSize == null) return;
 
     setState(() => isLoading = true);
     try {
-      await _cart.addItem(
-        productSlug: p.slug,
-        size: selectedSize!,
-        qty: 1,
-      );
+      await ref.read(cartProvider.notifier).addItem(
+            productSlug: p.slug,
+            size: selectedSize!,
+            qty: 1,
+          );
 
       if (!mounted) return;
       Navigator.pop(context);
@@ -100,12 +100,6 @@ class _QuickAddSheetState extends State<QuickAddSheet> {
                       )
                     : Text(!p.inStock ? 'Out of stock' : 'Add to cart'),
               ),
-            ),
-
-            const SizedBox(height: 8),
-            const Text(
-              'Tip: Cart is linked using X-Cart-Id header (guest cart).',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
             ),
           ],
         ),

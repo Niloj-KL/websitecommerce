@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../models/cart.dart';
 import '../../services/cart_service.dart';
+import '../../state/cart_state.dart';
 import '../../widgets/shop_shell.dart';
 
-class CartPage extends StatefulWidget {
+class CartPage extends ConsumerStatefulWidget {
   const CartPage({super.key});
 
   @override
-  State<CartPage> createState() => _CartPageState();
+  ConsumerState<CartPage> createState() => _CartPageState();
 }
 
-class _CartPageState extends State<CartPage> {
+class _CartPageState extends ConsumerState<CartPage> {
   final service = CartService();
   late Future<Cart> future;
 
@@ -25,7 +28,10 @@ class _CartPageState extends State<CartPage> {
     return Cart.fromJson(json);
   }
 
-  void _refresh() => setState(() => future = _load());
+  Future<void> _refreshAll() async {
+    setState(() => future = _load());
+    await ref.read(cartProvider.notifier).refresh(); // update badge count
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +46,8 @@ class _CartPageState extends State<CartPage> {
             if (snap.hasError) {
               return Center(child: Text('Cart API error: ${snap.error}'));
             }
-            final cart = snap.data!;
 
+            final cart = snap.data!;
             if (cart.items.isEmpty) {
               return const Center(child: Text('Your cart is empty'));
             }
@@ -52,23 +58,25 @@ class _CartPageState extends State<CartPage> {
                 const Text('Cart', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 12),
 
-                ...cart.items.map((it) => _CartRow(
-                      item: it,
-                      onMinus: () async {
-                        final newQty = it.qty - 1;
-                        if (newQty < 1) return;
-                        await service.updateQty(itemId: it.itemId, qty: newQty);
-                        _refresh();
-                      },
-                      onPlus: () async {
-                        await service.updateQty(itemId: it.itemId, qty: it.qty + 1);
-                        _refresh();
-                      },
-                      onRemove: () async {
-                        await service.removeItem(it.itemId);
-                        _refresh();
-                      },
-                    )),
+                ...cart.items.map(
+                  (it) => _CartRow(
+                    item: it,
+                    onMinus: () async {
+                      final newQty = it.qty - 1;
+                      if (newQty < 1) return;
+                      await ref.read(cartProvider.notifier).updateQty(itemId: it.itemId, qty: newQty);
+                      await _refreshAll();
+                    },
+                    onPlus: () async {
+                      await ref.read(cartProvider.notifier).updateQty(itemId: it.itemId, qty: it.qty + 1);
+                      await _refreshAll();
+                    },
+                    onRemove: () async {
+                      await ref.read(cartProvider.notifier).removeItem(it.itemId);
+                      await _refreshAll();
+                    },
+                  ),
+                ),
 
                 const SizedBox(height: 18),
                 const Divider(),

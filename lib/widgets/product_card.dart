@@ -85,14 +85,7 @@ class _ProductCardState extends State<ProductCard> {
                                   context: context,
                                   showDragHandle: true,
                                   isScrollControlled: true,
-                                  builder: (_) => QuickAddSheet(
-                                    product: p,
-                                    onAdd: (size) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Added ${p.title} ($size)')),
-                                      );
-                                    },
-                                  ),
+                                  builder: (_) => QuickAddSheet(product: p),
                                 );
                               },
                               child: const Text('Quick add'),

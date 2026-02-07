@@ -1,9 +1,24 @@
 import 'package:flutter/material.dart';
-import '../../widgets/shop_shell.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class HomePage extends StatelessWidget {
+import '../../state/cart_state.dart';
+import '../../widgets/shop_shell.dart';
+
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
+
+  @override
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // refresh cart count once app opens (safe way)
+    Future.microtask(() => ref.read(cartProvider.notifier).refresh());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +45,11 @@ class HomePage extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () => context.go('/collections'),
                   child: const Text('View Collections'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton(
+                  onPressed: () => context.go('/c/tshirts'),
+                  child: const Text('Go to T-Shirts'),
                 ),
               ],
             ),
