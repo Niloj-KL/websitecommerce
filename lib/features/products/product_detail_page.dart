@@ -104,4 +104,36 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               SnackBar(content: Text('Added ${product.title} ($selectedSize)')),
                             );
                           },
-                    child: Text(!product.inStock ? 'Out of stock' : 'Ad
+                    child: Text(!product.inStock ? 'Out of stock' : 'Add to cart'),
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+                const Divider(),
+
+                const SizedBox(height: 10),
+                const Text('Description', style: TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                Text(
+                  (snap.data!['description'] ?? 'No description').toString(),
+                  style: const TextStyle(color: Colors.black87),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  static String _formatInt(int v) {
+    final s = v.toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      final idxFromEnd = s.length - i;
+      buf.write(s[i]);
+      if (idxFromEnd > 1 && idxFromEnd % 3 == 1) buf.write(',');
+    }
+    return buf.toString();
+  }
+}
