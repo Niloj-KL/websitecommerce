@@ -1,24 +1,21 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Optional
 
-app = FastAPI(title="Saja Website API", version="0.1.0")
+app = FastAPI(title="Saja Website API", version="0.2.0")
 
-# -------------------------
-# CORS (DEV ONLY)
-# -------------------------
-# Flutter web runs on different localhost ports while developing.
-# For development, allow all origins. In production, lock this down
-# to only your real domain(s), e.g. https://yourshop.lk
+# DEV CORS ONLY
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # DEV ONLY
-    allow_credentials=False,      # must be False if allow_origins is "*"
+    allow_origins=["*"],     # DEV ONLY
+    allow_credentials=False, # must be False with "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # -------------------------
-# Dummy in-memory data (replace with DB later)
+# Dummy products (later DB)
 # -------------------------
 PRODUCTS = [
     {
@@ -57,64 +54,137 @@ PRODUCTS = [
         "collection": "kurtis",
         "description": "Kurti demo product (patterned).",
     },
-    {
-        "id": "p4",
-        "slug": "dress-summer-1",
-        "title": "Summer Dress - Light",
-        "priceLkr": 9900,
-        "compareAtPriceLkr": None,
-        "imageUrls": [],
-        "sizes": ["S", "M", "L"],
-        "inStock": False,
-        "collection": "dress",
-        "description": "Summer dress demo product (out of stock).",
-    },
 ]
 
+def find_product(slug: str):
+    for p in PRODUCTS:
+        if p["slug"] == slug:
+            return p
+    return None
+
 # -------------------------
-# Routes
+# Cart (in-memory store)
+# Keyed by X-Cart-Id header
 # -------------------------
+CARTS = {}  # cart_id -> {"items":[...]}
+ITEM_SEQ = 1
+
+def get_cart(cart_id: str):
+    if cart_id not in CARTS:
+        CARTS[cart_id] = {"items": []}
+    return CARTS[cart_id]
+
+def cart_totals(cart):
+    subtotal = 0
+    for it in cart["items"]:
+        subtotal += int(it["priceLkr"]) * int(it["qty"])
+    return {"subtotalLkr": subtotal, "totalLkr": subtotal}
+
+class AddItemBody(BaseModel):
+    productSlug: str
+    size: str
+    qty: int = 1
+
+class UpdateQtyBody(BaseModel):
+    qty: int
+
 @app.get("/")
 def root():
     return {"status": "ok", "service": "Saja Website API"}
 
-
 @app.get("/collections")
 def list_collections():
-    """
-    Returns collections derived from PRODUCTS.
-    Flutter collections slugs should match these.
-    """
     cols = sorted(set(p["collection"] for p in PRODUCTS))
     return [{"name": c.upper(), "slug": c} for c in cols]
 
-
 @app.get("/products")
-def list_products(collection: str | None = None, q: str | None = None):
-    """
-    List products.
-    Optional filters:
-      - collection: filter by collection slug
-      - q: simple search by title
-    """
+def list_products(collection: Optional[str] = None, q: Optional[str] = None):
     items = PRODUCTS
-
     if collection:
         items = [p for p in items if p.get("collection") == collection]
-
     if q:
         q_low = q.lower()
         items = [p for p in items if q_low in p.get("title", "").lower()]
-
     return items
-
 
 @app.get("/products/{slug}")
 def get_product(slug: str):
-    """
-    Get a single product by slug.
-    """
-    for p in PRODUCTS:
-        if p.get("slug") == slug:
-            return p
-    raise HTTPException(status_code=404, detail="Product not found")
+    p = find_product(slug)
+    if not p:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return p
+
+# ---------- CART APIs ----------
+@app.get("/cart")
+def get_my_cart(x_cart_id: Optional[str] = Header(default=None)):
+    if not x_cart_id:
+        raise HTTPException(status_code=400, detail="Missing X-Cart-Id header")
+    cart = get_cart(x_cart_id)
+    return {"items": cart["items"], **cart_totals(cart)}
+
+@app.post("/cart/items")
+def add_cart_item(body: AddItemBody, x_cart_id: Optional[str] = Header(default=None)):
+    global ITEM_SEQ
+    if not x_cart_id:
+        raise HTTPException(status_code=400, detail="Missing X-Cart-Id header")
+
+    p = find_product(body.productSlug)
+    if not p:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    if body.size not in p["sizes"]:
+        raise HTTPException(status_code=400, detail="Invalid size")
+
+    if body.qty < 1:
+        raise HTTPException(status_code=400, detail="Qty must be >= 1")
+
+    cart = get_cart(x_cart_id)
+
+    # If same product+size exists, just increase qty
+    for it in cart["items"]:
+        if it["productSlug"] == body.productSlug and it["size"] == body.size:
+            it["qty"] += body.qty
+            return {"items": cart["items"], **cart_totals(cart)}
+
+    item = {
+        "itemId": f"ci{ITEM_SEQ}",
+        "productSlug": body.productSlug,
+        "title": p["title"],
+        "priceLkr": p["priceLkr"],      # snapshot
+        "imageUrl": (p["imageUrls"][0] if p["imageUrls"] else None),
+        "size": body.size,
+        "qty": body.qty,
+    }
+    ITEM_SEQ += 1
+    cart["items"].append(item)
+    return {"items": cart["items"], **cart_totals(cart)}
+
+@app.patch("/cart/items/{item_id}")
+def update_cart_item_qty(item_id: str, body: UpdateQtyBody, x_cart_id: Optional[str] = Header(default=None)):
+    if not x_cart_id:
+        raise HTTPException(status_code=400, detail="Missing X-Cart-Id header")
+
+    cart = get_cart(x_cart_id)
+
+    for it in cart["items"]:
+        if it["itemId"] == item_id:
+            if body.qty < 1:
+                raise HTTPException(status_code=400, detail="Qty must be >= 1")
+            it["qty"] = body.qty
+            return {"items": cart["items"], **cart_totals(cart)}
+
+    raise HTTPException(status_code=404, detail="Cart item not found")
+
+@app.delete("/cart/items/{item_id}")
+def delete_cart_item(item_id: str, x_cart_id: Optional[str] = Header(default=None)):
+    if not x_cart_id:
+        raise HTTPException(status_code=400, detail="Missing X-Cart-Id header")
+
+    cart = get_cart(x_cart_id)
+    before = len(cart["items"])
+    cart["items"] = [it for it in cart["items"] if it["itemId"] != item_id]
+
+    if len(cart["items"]) == before:
+        raise HTTPException(status_code=404, detail="Cart item not found")
+
+    return {"items": cart["items"], **cart_totals(cart)}
