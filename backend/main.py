@@ -8,7 +8,7 @@ from pathlib import Path
 app = FastAPI(title="Saja Website API", version="0.2.0")
 BASE_DIR = Path(__file__).resolve().parent
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
-
+#comment11111111111111
 # DEV CORS ONLY
 app.add_middleware(
     CORSMiddleware,
