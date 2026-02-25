@@ -46,11 +46,7 @@ jobs:
           flutter-version: "3.19.0"
 
       - name: Install dependencies
-        run: |
-          cd frontend
-          flutter pub get
+        run:  flutter pub get
 
       - name: Run Flutter analyze
-        run: |
-          cd frontend
-          flutter analyze
+        run:  flutter analyze
