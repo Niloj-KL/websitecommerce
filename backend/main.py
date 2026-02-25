@@ -10,6 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 #comment11111111111111
 # DEV CORS ONLY
+#I added this for Fun
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],     # DEV ONLY
