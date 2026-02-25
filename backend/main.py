@@ -1,236 +1,210 @@
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from typing import Optional
 from pathlib import Path
+import shutil
+import os
 
-app = FastAPI(title="Saja Website API", version="0.2.0")
+# -------------------------
+# App Setup
+# -------------------------
+app = FastAPI(title="Saja Website API", version="1.0.0")
+
 BASE_DIR = Path(__file__).resolve().parent
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
-#comment11111111111111
-# DEV CORS ONLY
-#I added this for Fun
+MEDIA_DIR = BASE_DIR / "media"
+MEDIA_DIR.mkdir(exist_ok=True)
+
+app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],     # DEV ONLY
-    allow_credentials=False, # must be False with "*"
+    allow_origins=["*"],   # DEV ONLY
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # -------------------------
-# Dummy products (later DB)
+# Database Setup
 # -------------------------
-PRODUCTS = [
-    {
-        "id": "p1",
-        "slug": "cotton-tee-1",
-        "title": "Cotton Tee - Model 1",
-        "priceLkr": 4990,
-        "compareAtPriceLkr": 5990,
-        "imageUrls": [],
+DATABASE_URL = "sqlite:///./ecommerce.db"
+
+engine = create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False}
+)
+
+SessionLocal = sessionmaker(bind=engine)
+Base = declarative_base()
+
+
+# -------------------------
+# Product Model
+# -------------------------
+class Product(Base):
+    __tablename__ = "products"
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String, unique=True, index=True)
+    title = Column(String)
+    description = Column(String)
+    priceLkr = Column(Integer)
+    compareAtPriceLkr = Column(Integer, nullable=True)
+    imageUrl = Column(String)
+    collection = Column(String)
+    inStock = Column(Boolean, default=True)
+
+
+Base.metadata.create_all(bind=engine)
+
+
+# -------------------------
+# Dependency
+# -------------------------
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# -------------------------
+# Root
+# -------------------------
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "Saja Website API"}
+
+
+# -------------------------
+# ADMIN: Create Product (Image Upload)
+# -------------------------
+@app.post("/admin/products")
+async def create_product(
+    slug: str = Form(...),
+    title: str = Form(...),
+    description: str = Form(...),
+    priceLkr: int = Form(...),
+    compareAtPriceLkr: Optional[int] = Form(None),
+    collection: str = Form(...),
+    inStock: bool = Form(True),
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    # Save image
+    image_path = MEDIA_DIR / image.filename
+    with open(image_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+
+    product = Product(
+        slug=slug,
+        title=title,
+        description=description,
+        priceLkr=priceLkr,
+        compareAtPriceLkr=compareAtPriceLkr,
+        imageUrl=f"/media/{image.filename}",
+        collection=collection,
+        inStock=inStock,
+    )
+
+    db.add(product)
+    db.commit()
+    db.refresh(product)
+
+    return {"message": "Product created successfully", "id": product.id}
+
+
+# -------------------------
+# List Collections
+# -------------------------
+@app.get("/collections")
+def list_collections(db: Session = Depends(get_db)):
+    collections = db.query(Product.collection).distinct().all()
+    return [{"name": c[0].upper(), "slug": c[0]} for c in collections]
+
+
+# -------------------------
+# List Products
+# -------------------------
+@app.get("/products")
+def list_products(
+    collection: Optional[str] = None,
+    q: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(Product)
+
+    if collection:
+        query = query.filter(Product.collection == collection)
+
+    if q:
+        query = query.filter(Product.title.ilike(f"%{q}%"))
+
+    products = query.all()
+
+    return [
+        {
+            "slug": p.slug,
+            "title": p.title,
+            "priceLkr": p.priceLkr,
+            "compareAtPriceLkr": p.compareAtPriceLkr,
+            "imageUrls": [f"http://localhost:8000{p.imageUrl}"],
+            "collection": p.collection,
+            "inStock": p.inStock,
+            "description": p.description,
+            "sizes": ["S", "M", "L", "XL"],  # Keep static for now
+        }
+        for p in products
+    ]
+
+
+# -------------------------
+# Get Single Product
+# -------------------------
+@app.get("/products/{slug}")
+def get_product(slug: str, db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.slug == slug).first()
+
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    return {
+        "slug": product.slug,
+        "title": product.title,
+        "priceLkr": product.priceLkr,
+        "compareAtPriceLkr": product.compareAtPriceLkr,
+        "imageUrls": [f"http://localhost:8000{product.imageUrl}"],
+        "collection": product.collection,
+        "inStock": product.inStock,
+        "description": product.description,
         "sizes": ["S", "M", "L", "XL"],
-        "inStock": True,
-        "collection": "tshirts",
-        "description": "Soft cotton tee. Demo product for development.",
-    },
-    {
-        "id": "p2",
-        "slug": "cotton-tee-2",
-        "title": "Cotton Tee - Model 2",
-        "priceLkr": 5250,
-        "compareAtPriceLkr": None,
-        "imageUrls": [],
-        "sizes": ["S", "M", "L", "XL"],
-        "inStock": True,
-        "collection": "tshirts",
-        "description": "Another cotton tee demo product.",
-    },
-    {
- 
-    "id": "p3",
-    "slug": "kurti-rose-1",
-    "title": "Kurti - Rose Pattern",
-    "priceLkr": 7900,
-    "compareAtPriceLkr": 8900,
-    "imageUrls": [
-        #"https://drive.google.com/file/d/1vGXeezMEzHAPEWTAkpOpz3aplH38Kvj0",
-        
-        #"https://drive.google.com/uc?export=view&id=1D-5wo4EWO-E1-UG60quehjHFs7cRxDH4",
-       # "https://drive.google.com/uc?export=view&id=1-otR3A7TQQHNme3d8l2PLSHLtFmMq6c3",
-       # "https://drive.google.com/uc?export=view&id=1WX8RWockjVWz1bEAhPl_BP1md4ji9KvP",
-       # "https://drive.google.com/uc?export=view&id=1V6AL2_3ExLBr1Dml2u-IQrzFT9t9Cgqb"
-         "http://localhost:8000/static/kurtis/kurta1.png",
-       "http://localhost:8000/static/kurtis/krta2.png",
-        "http://localhost:8000/static/kurtis/krta3.png",
-         "http://localhost:8000/static/kurtis/krta4.png",
-        "http://localhost:8000/static/kurtis/krta5.png",
-    ],
-    "sizes": ["S", "M", "L", "XL"],
-    "inStock": True,
-    "collection": "kurtis",
-    "description": "Elegant rose-pattern kurti"
+    }
 
-
-    },
-
-     {
- 
-    "id": "p3",
-    "slug": "kurti-rose-1",
-    "title": "Kurti - Rose Pattern",
-    "priceLkr": 3400,
-    "compareAtPriceLkr": 3000,
-    "imageUrls": [
-        #"https://drive.google.com/file/d/1vGXeezMEzHAPEWTAkpOpz3aplH38Kvj0",
-        
-        #"https://drive.google.com/uc?export=view&id=1D-5wo4EWO-E1-UG60quehjHFs7cRxDH4",
-       # "https://drive.google.com/uc?export=view&id=1-otR3A7TQQHNme3d8l2PLSHLtFmMq6c3",
-       # "https://drive.google.com/uc?export=view&id=1WX8RWockjVWz1bEAhPl_BP1md4ji9KvP",
-       # "https://drive.google.com/uc?export=view&id=1V6AL2_3ExLBr1Dml2u-IQrzFT9t9Cgqb"
-
-         "http://localhost:8000/static/kurtis/krta4.png",
-        "http://localhost:8000/static/kurtis/krta5.png",
-    ],
-    "sizes": ["S", "M", "L", "XL"],
-    "inStock": True,
-    "collection": "kurtis",
-    "description": "Elegant rose-pattern kurti"
-
-
-    },
-]
-
-def find_product(slug: str):
-    for p in PRODUCTS:
-        if p["slug"] == slug:
-            return p
-    return None
 
 # -------------------------
-# Cart (in-memory store)
-# Keyed by X-Cart-Id header
+# CART (still in-memory)
 # -------------------------
-CARTS = {}  # cart_id -> {"items":[...]}
+CARTS = {}
 ITEM_SEQ = 1
+
 
 def get_cart(cart_id: str):
     if cart_id not in CARTS:
         CARTS[cart_id] = {"items": []}
     return CARTS[cart_id]
 
+
 def cart_totals(cart):
-    subtotal = 0
-    for it in cart["items"]:
-        subtotal += int(it["priceLkr"]) * int(it["qty"])
+    subtotal = sum(int(it["priceLkr"]) * int(it["qty"]) for it in cart["items"])
     return {"subtotalLkr": subtotal, "totalLkr": subtotal}
 
-class AddItemBody(BaseModel):
-    productSlug: str
-    size: str
-    qty: int = 1
 
-class UpdateQtyBody(BaseModel):
-    qty: int
-
-@app.get("/")
-def root():
-    return {"status": "ok", "service": "Saja Website API"}
-
-@app.get("/collections")
-def list_collections():
-    cols = sorted(set(p["collection"] for p in PRODUCTS))
-    return [{"name": c.upper(), "slug": c} for c in cols]
-
-@app.get("/products")
-def list_products(collection: Optional[str] = None, q: Optional[str] = None):
-    items = PRODUCTS
-    if collection:
-        items = [p for p in items if p.get("collection") == collection]
-    if q:
-        q_low = q.lower()
-        items = [p for p in items if q_low in p.get("title", "").lower()]
-    return items
-
-@app.get("/products/{slug}")
-def get_product(slug: str):
-    p = find_product(slug)
-    if not p:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return p
-
-# ---------- CART APIs ----------
 @app.get("/cart")
 def get_my_cart(x_cart_id: Optional[str] = Header(default=None)):
     if not x_cart_id:
         raise HTTPException(status_code=400, detail="Missing X-Cart-Id header")
     cart = get_cart(x_cart_id)
-    return {"items": cart["items"], **cart_totals(cart)}
-
-@app.post("/cart/items")
-def add_cart_item(body: AddItemBody, x_cart_id: Optional[str] = Header(default=None)):
-    global ITEM_SEQ
-    if not x_cart_id:
-        raise HTTPException(status_code=400, detail="Missing X-Cart-Id header")
-
-    p = find_product(body.productSlug)
-    if not p:
-        raise HTTPException(status_code=404, detail="Product not found")
-
-    if body.size not in p["sizes"]:
-        raise HTTPException(status_code=400, detail="Invalid size")
-
-    if body.qty < 1:
-        raise HTTPException(status_code=400, detail="Qty must be >= 1")
-
-    cart = get_cart(x_cart_id)
-
-    # If same product+size exists, just increase qty
-    for it in cart["items"]:
-        if it["productSlug"] == body.productSlug and it["size"] == body.size:
-            it["qty"] += body.qty
-            return {"items": cart["items"], **cart_totals(cart)}
-
-    item = {
-        "itemId": f"ci{ITEM_SEQ}",
-        "productSlug": body.productSlug,
-        "title": p["title"],
-        "priceLkr": p["priceLkr"],      # snapshot
-        "imageUrl": (p["imageUrls"][0] if p["imageUrls"] else None),
-        "size": body.size,
-        "qty": body.qty,
-    }
-    ITEM_SEQ += 1
-    cart["items"].append(item)
-    return {"items": cart["items"], **cart_totals(cart)}
-
-@app.patch("/cart/items/{item_id}")
-def update_cart_item_qty(item_id: str, body: UpdateQtyBody, x_cart_id: Optional[str] = Header(default=None)):
-    if not x_cart_id:
-        raise HTTPException(status_code=400, detail="Missing X-Cart-Id header")
-
-    cart = get_cart(x_cart_id)
-
-    for it in cart["items"]:
-        if it["itemId"] == item_id:
-            if body.qty < 1:
-                raise HTTPException(status_code=400, detail="Qty must be >= 1")
-            it["qty"] = body.qty
-            return {"items": cart["items"], **cart_totals(cart)}
-
-    raise HTTPException(status_code=404, detail="Cart item not found")
-
-@app.delete("/cart/items/{item_id}")
-def delete_cart_item(item_id: str, x_cart_id: Optional[str] = Header(default=None)):
-    if not x_cart_id:
-        raise HTTPException(status_code=400, detail="Missing X-Cart-Id header")
-
-    cart = get_cart(x_cart_id)
-    before = len(cart["items"])
-    cart["items"] = [it for it in cart["items"] if it["itemId"] != item_id]
-
-    if len(cart["items"]) == before:
-        raise HTTPException(status_code=404, detail="Cart item not found")
-
     return {"items": cart["items"], **cart_totals(cart)}
