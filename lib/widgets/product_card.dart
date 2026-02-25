@@ -56,7 +56,7 @@ class _ProductCardState extends State<ProductCard> {
                             : Image.network(
                                 p.imageUrls.first,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Center(
+                                errorBuilder: (context, index, stackTrace) => const Center(
                                   child: Icon(Icons.image_not_supported_outlined, size: 44),
                                 ),
                               ),
