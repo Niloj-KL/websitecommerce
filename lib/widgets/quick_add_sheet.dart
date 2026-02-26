@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/user_friendly_messages.dart';
 import '../models/product.dart';
 import '../state/cart_state.dart';
 
 class QuickAddSheet extends ConsumerStatefulWidget {
   final Product product;
 
-  const QuickAddSheet({
-    super.key,
-    required this.product,
-  });
+  const QuickAddSheet({super.key, required this.product});
 
   @override
   ConsumerState<QuickAddSheet> createState() => _QuickAddSheetState();
@@ -18,6 +16,7 @@ class QuickAddSheet extends ConsumerStatefulWidget {
 
 class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   String? selectedSize;
+  int selectedQty = 1;
   bool isLoading = false;
 
   Future<void> _addToCart() async {
@@ -27,22 +26,22 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
 
     setState(() => isLoading = true);
     try {
-      await ref.read(cartProvider.notifier).addItem(
-            productSlug: p.slug,
-            size: selectedSize!,
-            qty: 1,
-          );
+      await ref
+          .read(cartProvider.notifier)
+          .addItem(productSlug: p.slug, size: selectedSize!, qty: selectedQty);
 
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Added ${p.title} ($selectedSize)')),
+        SnackBar(
+          content: Text('Added ${p.title} ($selectedSize) x$selectedQty'),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add to cart: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(kActionFailedMessage)));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -67,7 +66,10 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
             ),
             const SizedBox(height: 12),
 
-            const Text('Select size', style: TextStyle(fontWeight: FontWeight.w700)),
+            const Text(
+              'Select size',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 10),
 
             Wrap(
@@ -86,12 +88,50 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
             ),
 
             const SizedBox(height: 16),
+            const Text(
+              'Quantity',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: (isLoading || selectedQty <= 1)
+                      ? null
+                      : () => setState(() => selectedQty -= 1),
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$selectedQty',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                IconButton(
+                  onPressed: isLoading
+                      ? null
+                      : () => setState(() => selectedQty += 1),
+                  icon: const Icon(Icons.add_circle_outline),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
 
             SizedBox(
               width: double.infinity,
               height: 46,
               child: ElevatedButton(
-                onPressed: (isLoading || !p.inStock || selectedSize == null) ? null : _addToCart,
+                onPressed: (isLoading || !p.inStock || selectedSize == null)
+                    ? null
+                    : _addToCart,
                 child: isLoading
                     ? const SizedBox(
                         width: 18,

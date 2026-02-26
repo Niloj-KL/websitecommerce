@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/brand_text_styles.dart';
+import '../../core/user_friendly_messages.dart';
 import '../../models/product.dart';
 import '../../services/product_service.dart';
 import '../../widgets/product_card.dart';
@@ -35,7 +37,7 @@ class _SearchPageState extends State<SearchPage> {
               return const Center(child: CircularProgressIndicator());
             }
             if (snap.hasError) {
-              return Center(child: Text('Search API error: ${snap.error}'));
+              return const Center(child: Text(kMaintenanceMessage));
             }
 
             final products = (snap.data ?? [])
@@ -49,9 +51,29 @@ class _SearchPageState extends State<SearchPage> {
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    Text(
-                      'Search: "$query"',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFFFFF), Color(0xFFF7F4F0)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFEDEDED)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Search: "$query"',
+                              style: formalHeadingStyle(size: 25),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 12),
                     if (products.isEmpty)
@@ -70,7 +92,8 @@ class _SearchPageState extends State<SearchPage> {
                           mainAxisSpacing: 14,
                           childAspectRatio: 0.70,
                         ),
-                        itemBuilder: (context, i) => ProductCard(product: products[i]),
+                        itemBuilder: (context, i) =>
+                            ProductCard(product: products[i]),
                       ),
                   ],
                 );

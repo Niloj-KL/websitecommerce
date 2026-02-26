@@ -2,11 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/search/search_page.dart';
 
-
 import '../features/home/home_page.dart';
 import '../features/collections/collections_page.dart';
 import '../features/products/product_detail_page.dart';
 import '../features/products/product_list_page.dart';
+import '../features/products/all_products_page.dart';
 import '../features/cart/cart_page.dart';
 import '../features/account/account_page.dart';
 
@@ -21,20 +21,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (c, s) => ProductListPage(slug: s.pathParameters['slug']!),
       ),
       GoRoute(
+        path: '/products/all',
+        builder: (c, s) => const AllProductsPage(),
+      ),
+      GoRoute(
         path: '/p/:slug',
         builder: (c, s) => ProductDetailPage(slug: s.pathParameters['slug']!),
       ),
       GoRoute(path: '/cart', builder: (c, s) => const CartPage()),
       GoRoute(path: '/account', builder: (c, s) => const AccountPage()),
       GoRoute(
-  path: '/search',
-  builder: (c, s) {
-    final q = s.uri.queryParameters['q'] ?? '';
-    return SearchPage(q: q);
-  },
-),
-
+        path: '/search',
+        builder: (c, s) {
+          final q = s.uri.queryParameters['q'] ?? '';
+          return SearchPage(q: q);
+        },
+      ),
     ],
   );
 });
-

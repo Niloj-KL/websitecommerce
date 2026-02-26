@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Panel</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f8; color: #111; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    h1, h2 { margin: 0 0 12px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    input, select, button { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; box-sizing: border-box; }
+    button { cursor: pointer; background: #111827; color: #fff; border: none; }
+    button.secondary { background: #f3f4f6; color: #111827; border: 1px solid #d1d5db; }
+    .muted { color: #6b7280; font-size: 13px; }
+    .hidden { display: none; }
+    .msg { margin-top: 10px; font-weight: 600; }
+    .orders { display: grid; gap: 10px; }
+    .order { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; background: #fff; }
+    .order-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .done-btn { width: auto; padding: 6px 10px; border-radius: 999px; font-size: 12px; background: #065f46; color: #fff; border: none; }
+    .radio-row { display: flex; gap: 14px; flex-wrap: wrap; }
+    .radio-row label { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+    .list-box { border: 1px solid #e5e7eb; border-radius: 10px; max-height: 240px; overflow: auto; padding: 8px; }
+    .list-item { display: flex; align-items: center; gap: 8px; padding: 6px 4px; font-size: 14px; }
+    .tab-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .tab-btn { width: auto; padding: 8px 14px; border-radius: 999px; }
+    .tab-btn.secondary.active { background: #111827; color: #fff; border-color: #111827; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Admin Panel</h1>
+    <p class="muted">Manage products and orders.</p>
+
+    <div id="loginCard" class="card">
+      <h2>Login</h2>
+      <div class="row">
+        <input id="username" placeholder="Admin username" />
+        <input id="password" type="password" placeholder="Admin password" />
+      </div>
+      <div style="margin-top:10px;">
+        <button id="loginBtn">Login</button>
+      </div>
+      <div id="loginMsg" class="msg"></div>
+    </div>
+
+    <div id="appCard" class="hidden">
+      <div class="card">
+        <h2>Choose Latest Products</h2>
+        <p class="muted">Pick up to 10 products for the homepage, or use default latest 10 automatically.</p>
+        <div class="radio-row">
+          <label><input type="radio" name="homepageMode" id="modeDefault" value="default" /> Go with default</label>
+          <label><input type="radio" name="homepageMode" id="modeCustom" value="custom" /> Choose manually</label>
+        </div>
+        <div id="customPicker" class="hidden" style="margin-top:10px;">
+          <div class="list-box" id="candidateProducts"></div>
+          <p class="muted" id="pickedCount" style="margin-top:8px;">Selected: 0 / 10</p>
+        </div>
+        <div style="margin-top:10px;">
+          <button id="saveHomepageBtn">Save Homepage Selection</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Product Manager</h2>
+        <div class="tab-row">
+          <button id="tabAddBtn" class="tab-btn secondary active">Add Product</button>
+          <button id="tabManageBtn" class="tab-btn secondary">Manage Existing Product</button>
+        </div>
+
+        <div id="addProductPane">
+          <div class="row3">
+            <select id="newCollection"></select>
+            <input id="newTitle" placeholder="Product name" />
+            <input id="newPrice" type="number" placeholder="Price (LKR)" />
+          </div>
+          <div class="row3" style="margin-top:10px;">
+            <input id="newComparePrice" type="number" placeholder="Compare price (optional)" />
+            <input id="newImageFile" type="file" accept="image/*" multiple />
+            <button id="addProductBtn">Save Product</button>
+          </div>
+          <p class="muted" style="margin-top:8px;">
+            Upload 1 to 5 photos per item. Best ratio: 4:5 (e.g. 1200x1500). Also good: 3:4 (e.g. 1080x1440). Keep same ratio for all angles.
+          </p>
+        </div>
+
+        <div id="manageProductPane" class="hidden">
+          <div class="row3">
+            <input id="manageSearchInput" placeholder="Search product name..." />
+            <select id="manageResultsSelect"></select>
+            <select id="manageCollection"></select>
+          </div>
+          <div class="row3" style="margin-top:10px;">
+            <input id="manageTitle" placeholder="Product name" />
+            <input id="managePrice" type="number" placeholder="Price (LKR)" />
+            <input id="manageComparePrice" type="number" placeholder="Compare price (optional)" />
+          </div>
+          <div style="margin-top:10px; display:flex; gap:8px;">
+            <button id="manageUpdateBtn">Update Product</button>
+            <button id="manageDeleteBtn" class="secondary">Delete Product</button>
+          </div>
+        </div>
+
+        <div style="margin-top:10px; display:flex; gap:8px;">
+          <button id="refreshBtn" class="secondary">Refresh</button>
+          <button id="undoBtn" class="secondary hidden">Undo last removed order</button>
+          <button id="logoutBtn" class="secondary">Logout</button>
+        </div>
+        <div id="appMsg" class="msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>Recent Orders</h2>
+        <div id="orders" class="orders"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    const TOKEN_KEY = "admin_token";
+    const MAIN_CATEGORIES = [
+      { slug: "kurtis", label: "Kurtis" },
+      { slug: "tshirts", label: "T-Shirts" },
+      { slug: "shirts", label: "Shirts" },
+      { slug: "dress", label: "Dress" }
+    ];
+
+    const loginCard = document.getElementById("loginCard");
+    const appCard = document.getElementById("appCard");
+    const loginMsg = document.getElementById("loginMsg");
+    const appMsg = document.getElementById("appMsg");
+    const ordersDiv = document.getElementById("orders");
+    const undoBtn = document.getElementById("undoBtn");
+
+    const newCollectionSelect = document.getElementById("newCollection");
+    const newTitleInput = document.getElementById("newTitle");
+    const newPriceInput = document.getElementById("newPrice");
+    const newCompareInput = document.getElementById("newComparePrice");
+    const newImageInput = document.getElementById("newImageFile");
+    const tabAddBtn = document.getElementById("tabAddBtn");
+    const tabManageBtn = document.getElementById("tabManageBtn");
+    const addProductPane = document.getElementById("addProductPane");
+    const manageProductPane = document.getElementById("manageProductPane");
+    const manageSearchInput = document.getElementById("manageSearchInput");
+    const manageResultsSelect = document.getElementById("manageResultsSelect");
+    const manageCollection = document.getElementById("manageCollection");
+    const manageTitle = document.getElementById("manageTitle");
+    const managePrice = document.getElementById("managePrice");
+    const manageCompare = document.getElementById("manageComparePrice");
+
+    const modeDefault = document.getElementById("modeDefault");
+    const modeCustom = document.getElementById("modeCustom");
+    const customPicker = document.getElementById("customPicker");
+    const candidateProducts = document.getElementById("candidateProducts");
+    const pickedCount = document.getElementById("pickedCount");
+
+    let products = [];
+    let homepageConfig = { mode: "default", selectedSlugs: [] };
+    let canUndoOrderDelete = false;
+
+    function getToken() { return localStorage.getItem(TOKEN_KEY); }
+    function setToken(token) { localStorage.setItem(TOKEN_KEY, token); }
+    function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+
+    async function api(path, options = {}) {
+      const token = getToken();
+      const headers = Object.assign({}, options.headers || {});
+      if (token) headers["X-Admin-Token"] = token;
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || ("HTTP " + res.status));
+      }
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("application/json")) return await res.json();
+      return null;
+    }
+
+    function slugify(text) {
+      return text.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
+    }
+
+    function idValue(product) {
+      const id = String(product.id || "");
+      if (id.startsWith("p")) {
+        const n = Number(id.slice(1));
+        if (!Number.isNaN(n)) return n;
+      }
+      const match = id.match(/_(\d+)$/);
+      if (match) {
+        const n = Number(match[1]);
+        if (!Number.isNaN(n)) return n;
+      }
+      return 0;
+    }
+
+    function latestProducts() {
+      return [...products].sort((a, b) => idValue(b) - idValue(a));
+    }
+
+    function fillCategorySelect() {
+      newCollectionSelect.innerHTML = "";
+      MAIN_CATEGORIES.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.slug;
+        opt.textContent = c.label;
+        newCollectionSelect.appendChild(opt);
+      });
+      newCollectionSelect.value = "kurtis";
+      manageCollection.innerHTML = newCollectionSelect.innerHTML;
+    }
+
+    function setProductTab(tab) {
+      const addActive = tab === "add";
+      addProductPane.classList.toggle("hidden", !addActive);
+      manageProductPane.classList.toggle("hidden", addActive);
+      tabAddBtn.classList.toggle("active", addActive);
+      tabManageBtn.classList.toggle("active", !addActive);
+    }
+
+    function filteredProducts() {
+      const q = (manageSearchInput.value || "").trim().toLowerCase();
+      if (!q) return products;
+      return products.filter(p => String(p.title || "").toLowerCase().includes(q));
+    }
+
+    function selectedManageProduct() {
+      const slug = manageResultsSelect.value;
+      return products.find(p => p.slug === slug);
+    }
+
+    function populateManageEditor() {
+      const p = selectedManageProduct();
+      if (!p) {
+        manageTitle.value = "";
+        managePrice.value = "";
+        manageCompare.value = "";
+        return;
+      }
+      manageTitle.value = p.title || "";
+      managePrice.value = p.priceLkr ?? "";
+      manageCompare.value = p.compareAtPriceLkr ?? "";
+      manageCollection.value = p.collection || "kurtis";
+    }
+
+    function renderManageResults() {
+      const list = filteredProducts();
+      manageResultsSelect.innerHTML = "";
+      list.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.slug;
+        opt.textContent = p.title + " (" + p.slug + ")";
+        manageResultsSelect.appendChild(opt);
+      });
+      populateManageEditor();
+    }
+
+    function updateCustomVisibility() {
+      customPicker.classList.toggle("hidden", !modeCustom.checked);
+    }
+
+    function selectedCustomSlugs() {
+      return Array.from(candidateProducts.querySelectorAll("input[type='checkbox']:checked")).map(cb => cb.value);
+    }
+
+    function renderCandidates() {
+      candidateProducts.innerHTML = "";
+      const selectedSet = new Set(homepageConfig.selectedSlugs || []);
+      const list = latestProducts();
+      list.forEach(p => {
+        const row = document.createElement("label");
+        row.className = "list-item";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.value = p.slug;
+        cb.checked = selectedSet.has(p.slug);
+        cb.addEventListener("change", () => {
+          const checked = selectedCustomSlugs();
+          if (checked.length > 10) {
+            cb.checked = false;
+            return;
+          }
+          const count = checked.length;
+          pickedCount.textContent = "Selected: " + count + " / 10";
+          const all = candidateProducts.querySelectorAll("input[type='checkbox']");
+          all.forEach(x => { if (!x.checked) x.disabled = count >= 10; });
+        });
+        const txt = document.createElement("span");
+        txt.textContent = p.title + " (" + p.slug + ")";
+        row.appendChild(cb);
+        row.appendChild(txt);
+        candidateProducts.appendChild(row);
+      });
+
+      const count = selectedCustomSlugs().length;
+      pickedCount.textContent = "Selected: " + count + " / 10";
+    }
+
+    async function loadProducts() {
+      products = await api("/admin/products");
+      fillCategorySelect();
+      renderCandidates();
+      renderManageResults();
+    }
+
+    async function loadHomepageConfig() {
+      homepageConfig = await api("/admin/homepage-config");
+      modeDefault.checked = homepageConfig.mode !== "custom";
+      modeCustom.checked = homepageConfig.mode === "custom";
+      updateCustomVisibility();
+      renderCandidates();
+    }
+
+    async function loadOrders() {
+      const orders = await api("/admin/orders");
+      if (!orders.length) {
+        ordersDiv.innerHTML = "<div class='muted'>No orders yet.</div>";
+        return;
+      }
+      ordersDiv.innerHTML = orders.map(order => {
+        const items = (order.items || []).map(it =>
+          "<div>- " + it.title + " | Size " + it.size + " | Qty " + it.qty + " | Rs. " + it.priceLkr + "</div>"
+        ).join("");
+        return (
+          "<div class='order'>" +
+          "<div class='order-head'>" +
+          "<div><b>" + order.orderId + "</b> • Rs. " + order.totalLkr + "</div>" +
+          "<button class='done-btn' data-order-id='" + order.orderId + "'>Done ✓</button>" +
+          "</div>" +
+          "<div>Customer: " + (order.customerName || "-") + "</div>" +
+          "<div>Email: " + (order.customerEmail || "-") + "</div>" +
+          "<div>Phone: " + (order.customerPhone || "-") + "</div>" +
+          "<div>Address: " + (order.deliveryAddress || "-") + "</div>" +
+          "<div>Time: " + order.createdAt + "</div>" +
+          "<div style='margin-top:6px; font-size:13px;'>" + items + "</div>" +
+          "</div>"
+        );
+      }).join("");
+    }
+
+    async function refreshAll() {
+      await loadProducts();
+      await loadHomepageConfig();
+      await loadOrders();
+    }
+
+    function setLoggedInUi(isLoggedIn) {
+      loginCard.classList.toggle("hidden", isLoggedIn);
+      appCard.classList.toggle("hidden", !isLoggedIn);
+      if (!isLoggedIn) {
+        canUndoOrderDelete = false;
+        undoBtn.classList.add("hidden");
+      }
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      loginMsg.textContent = "";
+      try {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const data = await api("/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        setToken(data.token);
+        setLoggedInUi(true);
+        await refreshAll();
+      } catch (e) {
+        loginMsg.textContent = "Login failed: " + e.message;
+      }
+    });
+
+    modeDefault.addEventListener("change", updateCustomVisibility);
+    modeCustom.addEventListener("change", updateCustomVisibility);
+    tabAddBtn.addEventListener("click", () => setProductTab("add"));
+    tabManageBtn.addEventListener("click", () => setProductTab("manage"));
+    manageSearchInput.addEventListener("input", renderManageResults);
+    manageResultsSelect.addEventListener("change", populateManageEditor);
+
+    document.getElementById("saveHomepageBtn").addEventListener("click", async () => {
+      appMsg.textContent = "";
+      try {
+        const mode = modeCustom.checked ? "custom" : "default";
+        const selected = mode === "custom" ? selectedCustomSlugs() : [];
+        if (selected.length > 10) throw new Error("Maximum 10 products can be selected.");
+        homepageConfig = await api("/admin/homepage-config", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode, selectedSlugs: selected }),
+        });
+        appMsg.textContent = "Homepage selection saved.";
+      } catch (e) {
+        appMsg.textContent = "Failed to save homepage selection: " + e.message;
+      }
+    });
+
+    document.getElementById("addProductBtn").addEventListener("click", async () => {
+      appMsg.textContent = "";
+      try {
+        const collection = newCollectionSelect.value;
+        const title = newTitleInput.value.trim();
+        const price = Number(newPriceInput.value);
+        const compare = newCompareInput.value ? Number(newCompareInput.value) : null;
+        const files = Array.from(newImageInput.files || []);
+
+        if (!title || Number.isNaN(price)) throw new Error("Please enter name and valid price.");
+        if (files.length < 1) throw new Error("Please choose at least 1 image.");
+        if (files.length > 5) throw new Error("Please upload maximum 5 images.");
+
+        const baseSlug = slugify(title);
+        const slug = baseSlug + "-" + Date.now();
+
+        const imageUrls = [];
+        for (const file of files) {
+          const fd = new FormData();
+          fd.append("file", file);
+          const uploaded = await api("/admin/upload-image", { method: "POST", body: fd });
+          if (!uploaded || !uploaded.imageUrl) {
+            throw new Error("Image upload failed.");
+          }
+          imageUrls.push(uploaded.imageUrl);
+        }
+
+        await api("/admin/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            slug,
+            title,
+            priceLkr: price,
+            compareAtPriceLkr: compare,
+            imageUrls: imageUrls,
+            collection,
+            description: title,
+          }),
+        });
+
+        newTitleInput.value = "";
+        newPriceInput.value = "";
+        newCompareInput.value = "";
+        newImageInput.value = "";
+        newCollectionSelect.value = "kurtis";
+        appMsg.textContent = "Product added successfully.";
+        await refreshAll();
+      } catch (e) {
+        appMsg.textContent = "Failed to add product: " + e.message;
+      }
+    });
+
+    document.getElementById("manageUpdateBtn").addEventListener("click", async () => {
+      appMsg.textContent = "";
+      try {
+        const p = selectedManageProduct();
+        if (!p) throw new Error("Select a product to update.");
+        const title = manageTitle.value.trim();
+        const price = Number(managePrice.value);
+        const compare = manageCompare.value ? Number(manageCompare.value) : null;
+        if (!title || Number.isNaN(price)) throw new Error("Please enter valid title and price.");
+
+        await api("/admin/products/" + encodeURIComponent(p.slug), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title,
+            priceLkr: price,
+            compareAtPriceLkr: compare,
+            collection: manageCollection.value
+          }),
+        });
+        appMsg.textContent = "Product updated.";
+        await loadProducts();
+      } catch (e) {
+        appMsg.textContent = "Failed to update product: " + e.message;
+      }
+    });
+
+    document.getElementById("manageDeleteBtn").addEventListener("click", async () => {
+      appMsg.textContent = "";
+      try {
+        const p = selectedManageProduct();
+        if (!p) throw new Error("Select a product to delete.");
+        if (!window.confirm("Delete product '" + p.title + "' permanently?")) return;
+        await api("/admin/products/" + encodeURIComponent(p.slug), { method: "DELETE" });
+        appMsg.textContent = "Product deleted.";
+        await refreshAll();
+      } catch (e) {
+        appMsg.textContent = "Failed to delete product: " + e.message;
+      }
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", async () => {
+      appMsg.textContent = "";
+      try { await refreshAll(); } catch (e) { appMsg.textContent = "Refresh failed: " + e.message; }
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      try { await api("/admin/logout", { method: "POST" }); } catch (_) {}
+      clearToken();
+      setLoggedInUi(false);
+      appMsg.textContent = "";
+    });
+
+    ordersDiv.addEventListener("click", async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const orderId = target.getAttribute("data-order-id");
+      if (!orderId) return;
+      if (!window.confirm("Mark this order as completed and remove it?")) return;
+
+      appMsg.textContent = "";
+      try {
+        await api("/admin/orders/" + encodeURIComponent(orderId), { method: "DELETE" });
+        appMsg.textContent = "Order removed.";
+        canUndoOrderDelete = true;
+        undoBtn.classList.remove("hidden");
+        await loadOrders();
+      } catch (e) {
+        appMsg.textContent = "Failed to remove order: " + e.message;
+      }
+    });
+
+    undoBtn.addEventListener("click", async () => {
+      if (!canUndoOrderDelete) return;
+      appMsg.textContent = "";
+      try {
+        await api("/admin/orders/undo-delete", { method: "POST" });
+        appMsg.textContent = "Removed order restored.";
+        canUndoOrderDelete = false;
+        undoBtn.classList.add("hidden");
+        await loadOrders();
+      } catch (e) {
+        appMsg.textContent = "Undo failed: " + e.message;
+      }
+    });
+
+    (async () => {
+      const token = getToken();
+      if (!token) {
+        setLoggedInUi(false);
+        return;
+      }
+      try {
+        setLoggedInUi(true);
+        setProductTab("add");
+        await refreshAll();
+      } catch (_) {
+        clearToken();
+        setLoggedInUi(false);
+      }
+    })();
+  </script>
+</body>
+</html>
