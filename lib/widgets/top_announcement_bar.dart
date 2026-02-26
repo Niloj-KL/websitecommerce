@@ -6,13 +6,24 @@ class TopAnnouncementBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 34,
+      height: 36,
       width: double.infinity,
-      color: Colors.black,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF0F0F10), Color(0xFF2A2A2C)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
       alignment: Alignment.center,
       child: const Text(
-        'Enjoy FREE DELIVERY islandwide on orders above Rs. 15,000',
-        style: TextStyle(color: Colors.white, fontSize: 12),
+        'Free delivery islandwide on orders above Rs. 8,000',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          letterSpacing: 0.35,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

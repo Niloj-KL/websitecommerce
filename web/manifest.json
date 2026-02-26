@@ -1,11 +1,11 @@
 {
-    "name": "vigo_style_shop",
-    "short_name": "vigo_style_shop",
+    "name": "Elegant Way",
+    "short_name": "Elegant Way",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Elegant Way fashion store.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/brand_text_styles.dart';
 import '../../core/user_friendly_messages.dart';
 import '../../models/product.dart';
@@ -6,16 +7,17 @@ import '../../services/product_service.dart';
 import '../../widgets/product_card.dart';
 import '../../widgets/shop_shell.dart';
 
-class ProductListPage extends StatefulWidget {
-  final String slug;
-  const ProductListPage({super.key, required this.slug});
+class AllProductsPage extends StatefulWidget {
+  const AllProductsPage({super.key});
 
   @override
-  State<ProductListPage> createState() => _ProductListPageState();
+  State<AllProductsPage> createState() => _AllProductsPageState();
 }
 
-class _ProductListPageState extends State<ProductListPage> {
+class _AllProductsPageState extends State<AllProductsPage> {
   final service = ProductService();
+  static const int _pageSize = 12;
+  int _currentPage = 0;
 
   int _columnsForWidth(double w) {
     if (w >= 1200) return 4;
@@ -29,7 +31,7 @@ class _ProductListPageState extends State<ProductListPage> {
     return Scaffold(
       body: ShopShell(
         child: FutureBuilder<List<dynamic>>(
-          future: service.listProducts(collection: widget.slug),
+          future: service.listProducts(),
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -41,11 +43,19 @@ class _ProductListPageState extends State<ProductListPage> {
             final products = (snap.data ?? [])
                 .map((e) => Product.fromJson(e as Map<String, dynamic>))
                 .toList();
+            final totalPages = products.isEmpty
+                ? 1
+                : ((products.length + _pageSize - 1) ~/ _pageSize);
+            final safePage = _currentPage.clamp(0, totalPages - 1);
+            final start = safePage * _pageSize;
+            final end = (start + _pageSize) > products.length
+                ? products.length
+                : (start + _pageSize);
+            final pageItems = products.sublist(start, end);
 
             return LayoutBuilder(
               builder: (context, constraints) {
                 final cols = _columnsForWidth(constraints.maxWidth);
-
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
@@ -60,28 +70,22 @@ class _ProductListPageState extends State<ProductListPage> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: const Color(0xFFEDEDED)),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.style_outlined),
-                          const SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.slug.toUpperCase().replaceAll('-', ' '),
-                                style: formalHeadingStyle(size: 28),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${products.length} products',
-                                style: const TextStyle(color: Colors.black54),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Elegant silhouettes crafted for everyday wear.',
-                                style: inlineAccentStyle(),
-                              ),
-                            ],
+                          Text(
+                            'All Products',
+                            style: formalHeadingStyle(size: 28),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${products.length} items • Page ${safePage + 1} of $totalPages',
+                            style: const TextStyle(color: Colors.black54),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Browse every product from all collections.',
+                            style: inlineAccentStyle(),
                           ),
                         ],
                       ),
@@ -96,14 +100,14 @@ class _ProductListPageState extends State<ProductListPage> {
                           border: Border.all(color: const Color(0xFFEDEDED)),
                         ),
                         child: const Center(
-                          child: Text('No products in this collection yet.'),
+                          child: Text('No products available yet.'),
                         ),
                       )
-                    else
+                    else ...[
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: products.length,
+                        itemCount: pageItems.length,
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: cols,
                           crossAxisSpacing: 14,
@@ -111,8 +115,37 @@ class _ProductListPageState extends State<ProductListPage> {
                           childAspectRatio: 0.70,
                         ),
                         itemBuilder: (context, i) =>
-                            ProductCard(product: products[i]),
+                            ProductCard(product: pageItems[i]),
                       ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          OutlinedButton(
+                            onPressed: safePage > 0
+                                ? () => setState(
+                                    () => _currentPage = safePage - 1,
+                                  )
+                                : null,
+                            child: const Text('Previous'),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            '${safePage + 1} / $totalPages',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(width: 12),
+                          OutlinedButton(
+                            onPressed: safePage < totalPages - 1
+                                ? () => setState(
+                                    () => _currentPage = safePage + 1,
+                                  )
+                                : null,
+                            child: const Text('Next'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 );
               },

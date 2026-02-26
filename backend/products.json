@@ -1,0 +1,101 @@
+[
+  {
+    "id": "p1",
+    "slug": "cotton-tee-1",
+    "title": "Cotton Tee - Model 1",
+    "priceLkr": 41111,
+    "compareAtPriceLkr": 4567,
+    "imageUrls": [
+      "http://localhost:8000/static/uploads/20260226015850232612_download.jpg"
+    ],
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "inStock": true,
+    "collection": "tshirts",
+    "description": "Soft and breathable cotton tee for everyday wear."
+  },
+  {
+    "id": "p2",
+    "slug": "cotton-tee-2",
+    "title": "girllrlrlrlu",
+    "priceLkr": 267111,
+    "compareAtPriceLkr": 2211,
+    "imageUrls": [
+      "http://localhost:8000/static/uploads/20260226013403509328_images.jpg"
+    ],
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "inStock": true,
+    "collection": "tshirts",
+    "description": "Comfort-fit cotton tee with a clean modern look."
+  },
+  {
+    "id": "p3",
+    "slug": "kurti-rose-1",
+    "title": "Kurti - Rose Pattern",
+    "priceLkr": 7900,
+    "compareAtPriceLkr": 8900,
+    "imageUrls": [
+      "http://localhost:8000/static/kurtis/kurta1.png",
+      "http://localhost:8000/static/kurtis/krta2.png",
+      "http://localhost:8000/static/kurtis/krta3.png",
+      "http://localhost:8000/static/kurtis/krta4.png",
+      "http://localhost:8000/static/kurtis/krta5.png"
+    ],
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "inStock": true,
+    "collection": "kurtis",
+    "description": "Elegant rose-pattern kurti"
+  },
+  {
+    "id": "p5",
+    "slug": "sareeee-1772055168971",
+    "title": "sareeee",
+    "priceLkr": 1000,
+    "compareAtPriceLkr": 1500,
+    "imageUrls": [
+      "http://localhost:8000/static/uploads/20260226030249049561_sareee1.jpg"
+    ],
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "inStock": true,
+    "collection": "shirts",
+    "description": "sareeee"
+  },
+  {
+    "id": "p6",
+    "slug": "dress1frock-1772055205790",
+    "title": "dress1Frock",
+    "priceLkr": 2000,
+    "compareAtPriceLkr": 2500,
+    "imageUrls": [
+      "http://localhost:8000/static/uploads/20260226030326113858_dresss.jpg"
+    ],
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "inStock": true,
+    "collection": "dress",
+    "description": "dress1Frock"
+  }
+]
